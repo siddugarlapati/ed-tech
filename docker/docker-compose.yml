@@ -1,0 +1,145 @@
+# Docker Compose for Advanced QLoRA System
+# Supports both training and inference deployment
+
+version: '3.8'
+
+services:
+  # Training service
+  qlora-trainer:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: advanced-qlora:latest
+    container_name: qlora-trainer
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - CUDA_VISIBLE_DEVICES=0
+      - PYTHONPATH=/app
+      - WANDB_API_KEY=${WANDB_API_KEY:-}
+      - HF_TOKEN=${HF_TOKEN:-}
+    volumes:
+      - ../models:/app/models
+      - ../data:/app/data
+      - ../logs:/app/logs
+      - ../configs:/app/configs
+      - ~/.cache/huggingface:/home/qlora/.cache/huggingface
+    working_dir: /app
+    command: >
+      python scripts/train_production.py
+      --config configs/production_config.yaml
+      --log_level INFO
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+    profiles:
+      - training
+
+  # Inference service
+  qlora-inference:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: advanced-qlora:latest
+    container_name: qlora-inference
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - CUDA_VISIBLE_DEVICES=0
+      - PYTHONPATH=/app
+      - MODEL_NAME=${MODEL_NAME:-meta-llama/Llama-3.1-8B}
+      - ADAPTER_PATHS=${ADAPTER_PATHS:-}
+    volumes:
+      - ../models:/app/models:ro
+      - ~/.cache/huggingface:/home/qlora/.cache/huggingface:ro
+    ports:
+      - "8000:8000"
+    working_dir: /app
+    command: >
+      python scripts/inference_server.py
+      --host 0.0.0.0
+      --port 8000
+      --log-level info
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    profiles:
+      - inference
+
+  # Monitoring service (optional)
+  tensorboard:
+    image: tensorflow/tensorflow:latest
+    container_name: qlora-tensorboard
+    ports:
+      - "6006:6006"
+    volumes:
+      - ../logs:/logs:ro
+    command: tensorboard --logdir=/logs --host=0.0.0.0 --port=6006
+    restart: unless-stopped
+    profiles:
+      - monitoring
+
+  # Jupyter notebook for development (optional)
+  jupyter:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: advanced-qlora:latest
+    container_name: qlora-jupyter
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - JUPYTER_ENABLE_LAB=yes
+    volumes:
+      - ..:/app
+      - ~/.cache/huggingface:/home/qlora/.cache/huggingface
+    ports:
+      - "8888:8888"
+    working_dir: /app
+    command: >
+      jupyter lab
+      --ip=0.0.0.0
+      --port=8888
+      --no-browser
+      --allow-root
+      --NotebookApp.token=''
+      --NotebookApp.password=''
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+    profiles:
+      - development
+
+# Named volumes for persistent data
+volumes:
+  model_cache:
+    driver: local
+  training_logs:
+    driver: local
+
+# Networks
+networks:
+  default:
+    name: qlora-network
+    driver: bridge

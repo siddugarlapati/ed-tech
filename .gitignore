@@ -1,0 +1,99 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+env/
+ENV/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Training outputs
+models/
+output/
+checkpoints/
+runs/
+logs/
+*.log
+
+# Data
+data/
+datasets/
+*.json
+*.jsonl
+*.csv
+*.parquet
+!configs/*.yaml
+!examples/*.json
+
+# Model files
+*.bin
+*.safetensors
+*.pt
+*.pth
+*.ckpt
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Documentation
+docs/_build/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Weights & Biases
+wandb/
+
+# TensorBoard
+events.out.tfevents.*
+
+# Hugging Face cache
+.cache/
+transformers_cache/
+
+# Multimodal tutor temp files
+multimodal_tutor/*.json
+multimodal_tutor/standalone_demo.py
+demo_concepts.json
+sample_dataset.json
+multilingual_dataset.json

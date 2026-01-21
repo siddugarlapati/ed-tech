@@ -1,0 +1,81 @@
+# Production Configuration for Advanced QLoRA System
+# Optimized for enterprise deployment and maximum performance
+
+model:
+  model_name_or_path: "meta-llama/Llama-3.1-8B"
+  trust_remote_code: false
+  torch_dtype: "bfloat16"
+  attn_implementation: "flash_attention_2"
+  
+  # Advanced quantization settings
+  load_in_4bit: true
+  bnb_4bit_compute_dtype: "bfloat16"
+  bnb_4bit_quant_type: "nf4"
+  bnb_4bit_use_double_quant: true
+  bnb_4bit_quant_storage: "uint8"
+  
+  device_map: "auto"
+  low_cpu_mem_usage: true
+
+lora:
+  r: 64
+  alpha: 16
+  dropout: 0.1
+  bias: "none"
+  task_type: "CAUSAL_LM"
+  use_rslora: true  # Rank-Stabilized LoRA for better stability
+  use_dora: false   # Weight-Decomposed LoRA (experimental)
+  init_lora_weights: true
+
+data:
+  dataset_name: "timdettmers/openassistant-guanaco"
+  max_seq_length: 2048
+  truncation: true
+  padding: "max_length"
+  min_length: 10
+  max_length: 4096
+  filter_duplicates: true
+
+training:
+  output_dir: "./models/production_model"
+  run_name: "production_qlora_v1"
+  
+  # Training schedule
+  num_train_epochs: 3
+  per_device_train_batch_size: 1
+  per_device_eval_batch_size: 1
+  gradient_accumulation_steps: 16
+  
+  # Optimization
+  learning_rate: 2.0e-4
+  weight_decay: 0.01
+  adam_beta1: 0.9
+  adam_beta2: 0.999
+  max_grad_norm: 1.0
+  optim: "paged_adamw_8bit"
+  
+  # Scheduling
+  lr_scheduler_type: "cosine"
+  warmup_ratio: 0.03
+  
+  # Evaluation and saving
+  evaluation_strategy: "steps"
+  eval_steps: 500
+  save_strategy: "steps"
+  save_steps: 500
+  save_total_limit: 3
+  load_best_model_at_end: true
+  
+  # Performance optimizations
+  dataloader_num_workers: 4
+  gradient_checkpointing: true
+  bf16: true
+  tf32: true
+  group_by_length: true
+  
+  # Logging
+  logging_steps: 10
+  report_to: ["tensorboard", "wandb"]
+  
+  # Advanced features
+  neftune_noise_alpha: 5.0  # Noise injection for better generalization
